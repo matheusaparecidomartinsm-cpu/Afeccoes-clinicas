@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Afecções Clínicas Interativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/*
+  Plano de design
+  Assunto: estudo para prova de afecções clínicas (enfermagem). Público: estudante revisando no celular ou no notebook.
+  Ideia central: o corpo humano é o índice. A abertura é uma silhueta com os órgãos clicáveis; cada sistema tem a sua cor,
+  como as abas coloridas de um prontuário. Todo o resto fica quieto: fundo frio de papel de exame, tipografia legível.
+  Cor:  papel #F2F5F8 · tinta #17223B · linha #D6DDE6 · marca-texto #FFE66B · 7 cores de sistema (neuro violeta, endócrino laranja,
+        gastro oliva, urinário âmbar, hemato carmim, cardio rosa-vermelho, respiratório azul-céu)
+  Tipo: Bricolage Grotesque (títulos, com peso 800 e ótica grande) + Atkinson Hyperlegible (texto; feita para leitura fácil).
+  Layout: hero em 2 colunas (título + legenda de sistemas | corpo), depois o sistema ativo: faixa de título colorida,
+        "cai na prova" como bilhete amarelo, tira de pranchas (imagens) rolando na horizontal e lista de doenças expansível.
+        Tudo alinhado à esquerda.
+  Revisão: troquei a grade de cartões iguais por uma lista tipo índice; tirei rótulos em caixa alta e metadados com ponto médio.
+*/
+:root{
+  --paper:#f2f5f8; --sheet:#ffffff; --ink:#17223b; --muted:#56637a; --line:#d6dde6; --mark:#ffe66b; --body:#dde4ee; --body-line:#b9c4d4;
+  --neuro:#6a4fb0; --endo:#c46518; --gastro:#5d7d23; --uro:#a67c00; --hemato:#b3203a; --cardio:#d0435e; --resp:#2376b8;
+  --f-d:"Bricolage Grotesque","Trebuchet MS",sans-serif; --f-b:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sys:var(--neuro);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#121826; --sheet:#1a2233; --ink:#e6ebf3; --muted:#9aa7bd; --line:#2c3850; --mark:#6b5a0e; --body:#243049; --body-line:#3a4966;
+  --neuro:#a58ef0; --endo:#f09a52; --gastro:#9bc55a; --uro:#e0b43a; --hemato:#f06a80; --cardio:#ff8aa0; --resp:#6db8f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#121826; --sheet:#1a2233; --ink:#e6ebf3; --muted:#9aa7bd; --line:#2c3850; --mark:#6b5a0e; --body:#243049; --body-line:#3a4966;
+  --neuro:#a58ef0; --endo:#f09a52; --gastro:#9bc55a; --uro:#e0b43a; --hemato:#f06a80; --cardio:#ff8aa0; --resp:#6db8f0; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-b);font-size:16px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:18px}
+:focus-visible{outline:3px solid var(--sys);outline-offset:3px;border-radius:4px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;padding-block:28px 10px}
+.hero h1{font-family:var(--f-d);font-weight:800;font-size:clamp(2.6rem,7vw,4.6rem);line-height:.92;letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance;font-variation-settings:"opsz" 96}
+.hero .intro{max-width:44ch;color:var(--muted);margin:0 0 20px}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 14px;margin:0;padding:0;list-style:none;max-width:440px}
+.legend button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;font-weight:700}
+.legend button .dot{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.legend button small{white-space:nowrap;font-weight:400;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.legend button:hover,.legend button[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 14%,transparent)}
+.legend button:focus-visible{outline:3px solid var(--c)}
+.legend .treino .dot{background:var(--ink);box-shadow:none;border-radius:3px}
+.search{margin-top:18px;max-width:440px;position:relative}
+.search input{width:100%;font:inherit;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink)}
+.search input:focus{border-color:var(--sys);outline:none}
+.results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--sheet);border:1px solid var(--line);border-radius:10px;z-index:30;max-height:320px;overflow:auto;box-shadow:0 12px 30px rgba(23,34,59,.14);padding:4px;margin:0;list-style:none}
+.results button{all:unset;display:flex;gap:10px;align-items:center;width:100%;box-sizing:border-box;padding:8px 10px;border-radius:7px;cursor:pointer}
+.results button:hover,.results button:focus-visible{background:var(--paper)}
+.results .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.results small{color:var(--muted);margin-left:auto}
+.results .none{padding:10px;color:var(--muted)}
+
+/* corpo */
+.bodymap{position:relative;justify-self:center;width:min(100%,330px)}
+.bodymap svg{width:100%;height:auto;display:block;overflow:visible}
+.bodymap .sil{fill:var(--body);stroke:var(--body-line);stroke-width:1.5}
+.bodymap .limb{stroke:var(--body);stroke-linecap:round;fill:none}
+.organ{cursor:pointer;outline:none}
+.organ .shape{fill:var(--c);opacity:.78;transition:opacity .15s, transform .15s;transform-box:fill-box;transform-origin:center}
+.organ .detail{fill:none;stroke:var(--sheet);stroke-width:1.4;opacity:.7;pointer-events:none}
+.organ:hover .shape,.organ:focus-visible .shape,.organ.on .shape{opacity:1;transform:scale(1.08)}
+.organ:focus-visible .shape{stroke:var(--ink);stroke-width:2}
+.tip{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);font-family:var(--f-d);font-weight:700;font-size:1.05rem;white-space:nowrap;color:var(--c,var(--muted))}
+
+/* barra fixa */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;gap:4px;overflow-x:auto;padding-block:8px;scrollbar-width:none}
+.bar button{all:unset;cursor:pointer;white-space:nowrap;padding:6px 12px;border-radius:999px;font-weight:700;font-size:.9rem;display:flex;gap:7px;align-items:center;color:var(--muted)}
+.bar button .dot{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.bar button[aria-selected="true"]{background:var(--c);color:#fff}
+.bar button[aria-selected="true"] .dot{background:#fff}
+.bar button:focus-visible{outline:3px solid var(--c)}
+
+/* sistema */
+main{padding-block:26px 70px;scroll-margin-top:56px}
+.dz{scroll-margin-top:70px}
+.syshead{border-left:8px solid var(--sys);padding:4px 0 4px 18px;margin-bottom:20px}
+.syshead h2{font-family:var(--f-d);font-weight:800;font-size:clamp(2rem,5vw,3rem);line-height:1;margin:0 0 8px;color:var(--sys);letter-spacing:-.015em}
+.syshead p{margin:0;max-width:68ch;color:var(--muted)}
+.note{background:var(--mark);color:#2a2410;border-radius:4px 4px 4px 18px;padding:14px 18px 14px 20px;margin:0 0 26px;max-width:720px;box-shadow:3px 4px 0 color-mix(in srgb,var(--ink) 12%,transparent);transform:rotate(-.4deg)}
+:root[data-theme="dark"] .note{color:#fff6cc}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .note{color:#fff6cc}}
+.note h3{font-family:var(--f-d);font-size:1.15rem;margin:0 0 4px}
+.note ul{margin:0;padding-left:20px}
+.note mark{background:transparent;font-weight:700;text-decoration:underline 2px;text-underline-offset:3px}
+
+.plates{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:10px;margin:0 0 30px}
+.plate{all:unset;cursor:zoom-in;flex:0 0 210px;scroll-snap-align:start;background:var(--sheet);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.plate img{width:100%;height:150px;object-fit:contain;background:#fff;display:block;border-bottom:1px solid var(--line)}
+.plate span{font-size:.84rem;padding:8px 10px;color:var(--muted);line-height:1.35}
+.plate:focus-visible{outline:3px solid var(--sys)}
+
+.list-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 8px;flex-wrap:wrap}
+.list-head h3{font-family:var(--f-d);font-size:1.5rem;margin:0}
+.link{all:unset;cursor:pointer;color:var(--sys);font-weight:700;text-decoration:underline 1.5px;text-underline-offset:3px}
+.dz{border-top:1px solid var(--line)}
+.dz:last-child{border-bottom:1px solid var(--line)}
+.dz summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(150px,240px) 1fr auto;gap:16px;align-items:baseline;padding:14px 4px}
+.dz summary::-webkit-details-marker{display:none}
+.dz summary .nm{font-family:var(--f-d);font-weight:700;font-size:1.2rem;line-height:1.2}
+.dz summary .gist{color:var(--muted);font-size:.93rem;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.dz summary .pm{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sys);position:relative;align-self:center}
+.dz summary .pm::before,.dz summary .pm::after{content:"";position:absolute;background:var(--sys);left:50%;top:50%;transform:translate(-50%,-50%)}
+.dz summary .pm::before{width:10px;height:2px}.dz summary .pm::after{width:2px;height:10px;transition:transform .2s}
+.dz[open] summary .pm::after{transform:translate(-50%,-50%) scaleY(0)}
+.dz[open] summary .gist{visibility:hidden}
+.dz summary:hover .nm{color:var(--sys)}
+.dz .inner{display:grid;grid-template-columns:220px 1fr;gap:22px;padding:2px 4px 22px}
+.dz .inner button.pic{all:unset;cursor:zoom-in;align-self:start}
+.dz .inner img{width:100%;border-radius:8px;border:1px solid var(--line);background:#fff;display:block;max-height:220px;object-fit:contain}
+.dz dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 16px}
+.dz dt{font-weight:700;color:var(--sys)}
+.dz dd{margin:0;max-width:62ch}
+.dz dd mark{background:var(--mark);color:inherit;padding:0 3px;border-radius:3px}
+.warn{grid-column:1/-1;margin-top:6px;padding:10px 14px;border-radius:8px;background:color-mix(in srgb,var(--hemato) 10%,var(--sheet));border:1px solid color-mix(in srgb,var(--hemato) 35%,transparent)}
+.warn b{color:var(--hemato)}
+
+/* treino */
+.quiz{max-width:620px}
+.picks{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px}
+.picks label{cursor:pointer;display:flex;gap:6px;align-items:center;padding:5px 11px 5px 8px;border-radius:999px;border:1.5px solid var(--c);font-size:.9rem;font-weight:700}
+.picks input{accent-color:var(--c)}
+.flip{perspective:1400px;cursor:pointer;margin-bottom:14px}
+.card3d{position:relative;min-height:250px;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.3,.7,.2,1)}
+.flip.on .card3d{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;padding:26px 26px 22px;display:flex;flex-direction:column;justify-content:space-between;background:var(--sheet);border:1px solid var(--line);border-top:10px solid var(--c)}
+.face.back{transform:rotateY(180deg);background:color-mix(in srgb,var(--c) 10%,var(--sheet))}
+.face .who{color:var(--c);font-weight:700;font-size:.9rem}
+.face .big{font-family:var(--f-d);font-weight:700;font-size:clamp(1.5rem,4.2vw,2.1rem);line-height:1.12;text-wrap:balance;margin:12px 0}
+.face .hint{color:var(--muted);font-size:.88rem}
+.qbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{all:unset;cursor:pointer;padding:10px 18px;border-radius:10px;font-weight:700;border:1.5px solid var(--ink)}
+.btn.yes{background:var(--gastro);border-color:var(--gastro);color:#fff}
+.btn.no{border-color:var(--hemato);color:var(--hemato)}
+.btn:focus-visible{outline:3px solid var(--ink)}
+.progress{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:18px 0 6px}
+.progress i{display:block;height:100%;background:var(--ink);transition:width .3s}
+.score{color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* questionário */
+.mstart p{font-weight:700;margin:0 0 10px}
+.mcq{max-width:680px}
+.mcq .who{color:var(--c,var(--muted));font-weight:700;margin:14px 0 4px}
+.mq{font-family:var(--f-d);font-weight:700;font-size:clamp(1.3rem,3.4vw,1.7rem);line-height:1.2;margin:0 0 16px;text-wrap:balance}
+.opts{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:8px}
+.opt{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;gap:12px;align-items:center;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--sheet)}
+.opt .let{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:1.5px solid var(--c);color:var(--c)}
+.opt .mk{margin-left:auto;font-weight:700;font-size:1.2rem}
+.opt:not([disabled]):hover{border-color:var(--c)}
+.opt:focus-visible{outline:3px solid var(--c)}
+.opt[disabled]{cursor:default}
+.opt.right{border-color:var(--gastro);background:color-mix(in srgb,var(--gastro) 12%,var(--sheet))}
+.opt.right .let{background:var(--gastro);border-color:var(--gastro);color:#fff}
+.opt.right .mk{color:var(--gastro)}
+.opt.wrong{border-color:var(--hemato);background:color-mix(in srgb,var(--hemato) 10%,var(--sheet))}
+.opt.wrong .let{background:var(--hemato);border-color:var(--hemato);color:#fff}
+.opt.wrong .mk{color:var(--hemato)}
+.opt.dim{opacity:.55}
+.fb{padding:14px 16px;border-radius:12px;margin:0 0 16px;line-height:1.5}
+.fb.ok{background:color-mix(in srgb,var(--gastro) 12%,var(--sheet));border:1px solid color-mix(in srgb,var(--gastro) 40%,transparent)}
+.fb.ok b{color:var(--gastro)}
+.fb.bad{background:color-mix(in srgb,var(--hemato) 9%,var(--sheet));border:1px solid color-mix(in srgb,var(--hemato) 35%,transparent)}
+.fb.bad b:first-child{color:var(--hemato)}
+.result{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin:6px 0 22px}
+.result .big{font-family:var(--f-d);font-weight:800;font-size:4rem;line-height:1}
+.result .big small{font-size:1.4rem;font-weight:700;color:var(--muted)}
+.result .pct{font-weight:700;color:var(--muted)}
+.rev{border-left:5px solid var(--c);padding:6px 0 6px 14px;margin:0 0 16px}
+.rev p{margin:2px 0}
+.bad-t{color:var(--hemato)} .ok-t{color:var(--gastro)}
+
+/* lightbox */
+.lb{position:fixed;inset:0;z-index:50;background:rgba(10,15,28,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+.lb img{max-width:100%;max-height:82vh;background:#fff;border-radius:8px}
+.lb p{color:#fff;margin:12px 0 0;text-align:center;max-width:60ch}
+
+footer{color:var(--muted);font-size:.85rem;padding-block:0 30px}
+
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr;padding-top:20px}
+  .bodymap{order:-1;width:min(70%,240px)}
+  .legend{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .legend button small{display:none}
+  .dz summary{grid-template-columns:1fr auto}
+  .dz summary .gist{display:none}
+  .dz .inner{grid-template-columns:1fr}
+  .dz dl{grid-template-columns:1fr;gap:2px}
+  .dz dd{margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap hero">
+  <div>
+    <h1>Afecções clínicas</h1>
+    <p class="intro">Resumo das 7 aulas de enfermagem do 4º período. Toque num órgão ou num sistema para estudar, ou teste o que sabe no questionário.</p>
+    <ul class="legend" id="legend"></ul>
+    <div class="search">
+      <input id="q" type="search" placeholder="Buscar doença, sinal ou remédio" aria-label="Buscar em todos os sistemas" autocomplete="off">
+      <ul class="results" id="res" hidden></ul>
+    </div>
+  </div>
+  <div class="bodymap">
+    <svg viewBox="0 0 300 530" role="img" aria-label="Corpo humano com os sistemas clicáveis">
+      <g class="silhouette">
+        <line class="limb" x1="98" y1="140" x2="70" y2="222" stroke-width="24"/><line class="limb" x1="70" y1="222" x2="60" y2="305" stroke-width="20"/>
+        <line class="limb" x1="202" y1="140" x2="230" y2="222" stroke-width="24"/><line class="limb" x1="230" y1="222" x2="240" y2="305" stroke-width="20"/>
+        <line class="limb" x1="128" y1="330" x2="122" y2="420" stroke-width="32"/><line class="limb" x1="122" y1="420" x2="120" y2="508" stroke-width="26"/>
+        <line class="limb" x1="172" y1="330" x2="178" y2="420" stroke-width="32"/><line class="limb" x1="178" y1="420" x2="180" y2="508" stroke-width="26"/>
+        <circle class="sil" cx="150" cy="60" r="42"/>
+        <rect class="sil" x="135" y="96" width="30" height="26" rx="8"/>
+        <path class="sil" d="M92 132 Q150 112 208 132 L216 250 Q214 305 198 338 L102 338 Q86 305 84 250 Z"/>
+      </g>
+      <g class="organ" data-s="neuro" tabindex="0" role="button" aria-label="Neurológico">
+        <path class="shape" d="M150 28c-20 0-34 12-34 30 0 14 10 24 22 26 4 1 8 0 12-2 4 2 8 3 12 2 12-2 22-12 22-26 0-18-14-30-34-30z"/>
+        <path class="detail" d="M150 30v52M132 44c6 4 8 10 6 16M168 44c-6 4-8 10-6 16M126 64c6-2 10 0 12 6M174 64c-6-2-10 0-12 6"/>
+      </g>
+      <g class="organ" data-s="endo" tabindex="0" role="button" aria-label="Endócrino">
+        <path class="shape" d="M150 112c-3-6-10-9-15-6-5 3-5 11 0 15 5 3 11 2 15-3 4 5 10 6 15 3 5-4 5-12 0-15-5-3-12 0-15 6z"/>
+      </g>
+      <g class="organ" data-s="resp" tabindex="0" role="button" aria-label="Respiratório">
+        <path class="shape" d="M142 138v20c-4 0-6 2-6 6-10-6-24 2-26 20-3 24 2 44 12 48 10 4 22-2 24-14 2-12 1-40-2-54h-2v-26z"/>
+        <path class="shape" d="M158 138v20c4 0 6 2 6 6 10-6 24 2 26 20 3 24-2 44-12 48-10 4-22-2-24-14-2-12-1-40 2-54h2v-26z"/>
+        <path class="detail" d="M150 132v26M150 158l-10 12M150 158l10 12"/>
+      </g>
+      <g class="organ" data-s="cardio" tabindex="0" role="button" aria-label="Cardiovascular">
+        <path class="shape" d="M160 186c-5-9-19-7-19 5 0 10 13 19 19 24 6-5 19-14 19-24 0-12-14-14-19-5z"/>
+      </g>
+      <g class="organ" data-s="gastro" tabindex="0" role="button" aria-label="Gastrointestinal">
+        <path class="shape" d="M150 226c8-6 26-8 32 2 5 9-2 20-14 20-8 0-12-4-18-4-6 0-10 2-12-4-1-6 5-10 12-14z"/>
+        <rect class="shape" x="116" y="256" width="68" height="50" rx="18"/>
+        <path class="detail" d="M126 270c8-6 16 6 24 0s16 6 24 0M126 290c8-6 16 6 24 0s16 6 24 0"/>
+      </g>
+      <g class="organ" data-s="uro" tabindex="0" role="button" aria-label="Urinário">
+        <path class="shape" d="M104 236c-8 2-12 12-10 22 2 10 10 14 16 10 4-3 2-8 2-14 0-6 4-10 2-14-2-4-6-5-10-4z"/>
+        <path class="shape" d="M196 236c8 2 12 12 10 22-2 10-10 14-16 10-4-3-2-8-2-14 0-6-4-10-2-14 2-4 6-5 10-4z"/>
+        <ellipse class="shape" cx="150" cy="322" rx="15" ry="11"/>
+        <path class="detail" style="stroke:var(--uro);opacity:.7" d="M108 268Q120 300 140 316M192 268Q180 300 160 316"/>
+      </g>
+      <g class="organ" data-s="hemato" tabindex="0" role="button" aria-label="Hematológico">
+        <path class="shape" d="M64 244c-7 10-12 17-12 24a12 12 0 0 0 24 0c0-7-5-14-12-24z"/>
+        <path class="detail" style="stroke:var(--hemato);opacity:.55;stroke-width:3" d="M96 146L72 222"/>
+      </g>
+    </svg>
+    <div class="tip" id="tip">Toque num órgão</div>
+  </div>
+</div>
+
+<div class="bar"><div class="wrap" id="bar" role="tablist" aria-label="Sistemas"></div></div>
+
+<main class="wrap" id="view" aria-live="polite"></main>
+<footer class="wrap">Imagens e conteúdo das aulas do Prof. Felipe Ferraz Fideles. Base: Brunner &amp; Suddarth, 14ª edição.</footer>
+<div class="lb" id="lb" hidden><img id="lbimg" alt=""><p id="lbcap"></p></div>
+
+<script>
+const I = n => "img/" + n + ".jpg";
+const SYS = [
+{id:"neuro", nome:"Neuro", titulo:"Sistema neurológico",
+ lead:"SNC = encéfalo + medula. SNP = nervos + gânglios. Avaliar sempre nível de consciência, pupilas, força, fala e marcha.",
+ figs:[["neuro_lobos","Lobos: frontal (movimento), parietal (sensibilidade), temporal (audição/memória), occipital (visão)"],["neuro_glasgow","Glasgow 3–15; ≤ 8 = intubar"],["neuro_pupilas","Isocoria, anisocoria, midríase, miose"],["neuro_paralisias","Tipos de paralisia"]],
+ chave:["Glasgow: ocular 4 + verbal 5 + motora 6 = <mark>máx 15, mín 3, ≤ 8 intubar</mark>","Anisocoria = alerta de lesão/herniação","Tempo é cérebro: TC antes do trombolítico"],
+ d:[
+ {n:"AVE isquêmico", img:"neuro_avei", o:"Oclusão de artéria por trombose (aterosclerose) ou embolia (ex.: FA). Déficit &lt; 24 h = AIT.", s:"Fraqueza em um lado, face torta, fala alterada, alteração visual, confusão.", dx:"<mark>TC de crânio</mark> (exclui sangramento), ECG, USG de carótidas, glicemia.", tt:"Trombolítico (alteplase) até <mark>4 h 30</mark>; trombectomia até 24 h.", enf:"Sinais vitais, Glasgow seriado, testar deglutição antes de VO, decúbito 2/2 h, grades.", al:"Pós-trombólise: repouso e nada invasivo (sangra)."},
+ {n:"AVE hemorrágico", img:"neuro_aveh", o:"Ruptura de vaso: epidural, subaracnoide (aneurisma), intracerebral (HAS).", s:"Cefaleia súbita intensa, vômito, ↓ consciência, déficit focal.", dx:"TC de crânio, angiografia.", tt:"Controle da PA e do sangramento em UTI; cirurgia se preciso.", enf:"PA rigorosa, avaliação neuro, cabeceira elevada."},
+ {n:"Aneurisma cerebral", img:"neuro_aneurisma", o:"Dilatação da artéria cerebral que pode romper.", s:"<mark>Pior cefaleia da vida</mark>, rigidez de nuca, fotofobia, vômito.", dx:"Angiografia, TC/RM, punção lombar.", tt:"Clipagem cirúrgica ou embolização (molas).", enf:"Repouso absoluto, <mark>cabeceira 30°</mark>, ambiente calmo, evitar Valsalva (laxante), PA na meta."},
+ {n:"Trauma raquimedular", img:"neuro_paralisias", o:"Lesão da medula (acidente, queda, PAF, FAB) → perda abaixo da lesão.", s:"Perda de força e sensibilidade, perda de controle de urina/fezes; lesão cervical alta → dificuldade respiratória.", dx:"RX de coluna, RM.", tt:"<mark>Colar cervical + movimentação em bloco + prancha</mark>; descompressão cirúrgica &lt; 24 h.", enf:"Alinhamento, decúbito 2/2 h, sondagem vesical, controle intestinal, profilaxia de TVP.", al:"Lesão acima de T6: disreflexia (PA muito alta) → esvaziar bexiga."},
+ {n:"Epilepsia", img:"neuro_crise", o:"Descarga elétrica anormal dos neurônios corticais. Crises focais ou generalizadas.", s:"Tônico-clônica: rigidez → abalos, perda de consciência, ~90 s. Ausência: desliga segundos.", dx:"<mark>EEG</mark>, TC/RM.", tt:"Carbamazepina, fenitoína, fenobarbital; benzodiazepínicos na crise.", enf:"Proteger a cabeça, afastar objetos, cronometrar, depois <mark>decúbito lateral</mark>.", al:"Não pôr nada na boca, não conter, não dar água. Crise &gt; 5 min = mal epiléptico."}
+ ]},
+{id:"endo", nome:"Endócrino", titulo:"Sistema endócrino",
+ lead:"Tireoide produz T4 (mais) e T3 (mais ativo). A hipófise regula pelo TSH, que anda ao contrário do T4.",
+ figs:[["endo_eixo","Eixo hipófise–tireoide (feedback negativo)"],["endo_glicose","Insulina ↓ glicose, glucagon ↑ glicose"],["endo_insulina","Locais de insulina: abdome absorve mais rápido"],["endo_neuropatia","Neuropatia diabética"],["endo_retina","Retinopatia diabética"]],
+ chave:["<mark>TSH ↑ = hipo · TSH ↓ = hiper</mark>","Diagnóstico de DM: jejum ≥ 126 · HbA1c ≥ 6,5% · TOTG ≥ 200 · casual ≥ 200 + sintomas","Hipoglicemia &lt; 70 → 15 g de açúcar e checar em 15 min"],
+ d:[
+ {n:"Hipotireoidismo", img:"endo_eixo", o:"Pouco hormônio → metabolismo lento. Principal causa: <mark>Hashimoto</mark> (autoimune).", s:"Cansaço, sono, pele seca, queda de cabelo, edema facial, constipação, ganho de peso, bradicardia.", dx:"TSH ↑, T4 ↓, anti-TPO.", tt:"<mark>Levotiroxina</mark> 1×/dia em jejum."},
+ {n:"Hipertireoidismo", img:"endo_eixo", o:"Excesso de hormônio. Principal causa: <mark>Doença de Graves</mark>.", s:"Nervosismo, taquicardia, calor, sudorese, perda de peso com fome, exoftalmia, bócio.", dx:"TSH ↓, T3/T4 ↑.", tt:"Metimazol, iodo radioativo, tireoidectomia.", al:"Complica com arritmia e IC."},
+ {n:"Diabetes tipo 1", img:"endo_glicose", o:"Autoimune: destrói células β → sem insulina.", s:"<mark>Poliúria, polidipsia, polifagia</mark> + perda de peso.", dx:"Mesmos critérios do DM2.", tt:"Insulina obrigatória.", enf:"Insulina SC 90°, rodízio, geladeira 2–8 °C.", al:"Risco de cetoacidose: hálito cetônico, Kussmaul, dor abdominal → hidratação + insulina EV + potássio."},
+ {n:"Diabetes tipo 2", img:"endo_insulina", o:"Resistência à insulina (~90% dos casos), genética + estilo de vida.", s:"Longo período sem sintomas; depois 3 Ps, fadiga, prurido, má cicatrização.", dx:"Jejum ≥ 126, HbA1c ≥ 6,5%.", tt:"Metformina (1ª), GLP-1 (semaglutida), iSGLT2, sulfonilureia, iDPP-4; dieta e exercício.", al:"Descompensação: estado hiperosmolar (glicemia &gt; 600, sem cetose)."},
+ {n:"Hipoglicemia", img:"endo_glicose", o:"Glicemia &lt; 70 por excesso de insulina, jejum ou exercício.", s:"Tremor, suor frio, palpitação, fome, confusão, convulsão, coma.", tt:"Consciente: 15 g de açúcar rápido, repetir após 15 min. Inconsciente: glicose EV ou glucagon."},
+ {n:"Complicações crônicas do DM", img:"endo_neuropatia", o:"Nefropatia, neuropatia, retinopatia, pé diabético.", s:"Albuminúria; formigamento nos pés; visão borrada; úlceras.", enf:"Inspecionar pés diariamente, secar entre os dedos, calçado fechado, fundo de olho anual."}
+ ]},
+{id:"gastro", nome:"Gastro", titulo:"Sistema gastrointestinal",
+ lead:"No exame do abdome a ordem é inspeção → ausculta → percussão → palpação (ausculta antes para não alterar os ruídos).",
+ figs:[["gi_sistema","Trato digestório e órgãos anexos"],["gi_regioes","9 regiões do abdome"],["gi_refluxo","Refluxo: esfíncter esofágico inferior aberto"],["gi_vesicula","Cálculos na vesícula"],["gi_pancreas","Pancreatite"],["gi_hemorroida","Hemorroidas internas e externas"]],
+ chave:["Hematêmese / melena = <mark>HDA</mark> → endoscopia","Hematoquezia (sangue vivo) = <mark>HDB</mark> → colonoscopia","Lipase ≥ 3× = pancreatite"],
+ d:[
+ {n:"DRGE (refluxo)", img:"gi_refluxo", o:"Ácido volta ao esôfago.", s:"<mark>Pirose</mark>, regurgitação, tosse crônica, rouquidão.", dx:"Teste com IBP; EDA se alarme (disfagia, sangramento, perda de peso, anemia).", tt:"<mark>IBP 8 semanas</mark>, não comer 2–3 h antes de deitar, elevar cabeceira, perder peso."},
+ {n:"Gastrite", img:"gi_gastrite", o:"Inflamação da mucosa gástrica: <mark>H. pylori</mark>, AINEs, álcool.", s:"Dor/queimação epigástrica, náusea, saciedade precoce.", dx:"EDA + biópsia, teste da urease, antígeno fecal.", tt:"H. pylori: terapia quádrupla 14 dias. AINE: suspender + IBP."},
+ {n:"Hemorragia digestiva", img:"gi_sistema", o:"HDA (úlcera, varizes, gastrite) ou HDB (divertículo, hemorroida, câncer).", s:"Hematêmese, melena, hematoquezia; palidez, taquicardia, hipotensão.", dx:"Hemograma, coagulograma, tipagem; EDA ou colonoscopia.", tt:"ABC, 2 acessos calibrosos, volume, transfusão, jejum; hemostasia endoscópica.", enf:"Sinais vitais frequentes, débito urinário, jejum."},
+ {n:"Doença de Crohn", img:"gi_sistema", o:"Inflamação crônica <mark>transmural</mark> da boca ao ânus.", s:"Diarreia crônica, dor, perda de peso, febre, fístulas.", dx:"Calprotectina fecal, colonoscopia com biópsia.", tt:"Corticoide, imunomodulador, biológico, nutrição, cirurgia.", al:"Tabagismo piora a doença."},
+ {n:"Diverticulite", img:"gi_regioes", o:"Inflamação de divertículo do cólon.", s:"<mark>Dor no quadrante inferior esquerdo + febre</mark> + alteração intestinal.", dx:"TC de abdome.", tt:"Analgesia, hidratação, ATB se indicado; complicada: internar, drenar.", al:"Não fazer colonoscopia na fase aguda."},
+ {n:"Colelitíase / colecistite", img:"gi_vesicula", o:"Cálculo na vesícula; colecistite = cálculo obstrui o ducto cístico.", s:"Cólica no hipocôndrio direito após gordura, irradia p/ ombro D; <mark>sinal de Murphy</mark>.", dx:"<mark>USG abdominal</mark>.", tt:"Colecistectomia laparoscópica."},
+ {n:"Pancreatite", img:"gi_pancreas", o:"Inflamação do pâncreas: <mark>cálculo biliar e álcool</mark>.", s:"Dor epigástrica intensa em faixa para o dorso, vômito.", dx:"2 de 3: dor típica, lipase/amilase ≥ 3×, imagem.", tt:"Hidratação EV, analgesia, dieta oral precoce na leve.", al:"Cullen/Grey-Turner (equimoses) = grave."},
+ {n:"Hemorroidas", img:"gi_hemorroida", o:"Dilatação de vasos do canal anal. Interna (indolor, sangra) × externa (dor, nódulo).", tt:"Fibras, água, não fazer força; ligadura elástica ou cirurgia."}
+ ]},
+{id:"uro", nome:"Urinário", titulo:"Sistema urinário",
+ lead:"Néfron = unidade funcional. Creatinina é o principal marcador renal. Mulher tem uretra curta, por isso mais ITU.",
+ figs:[["uro_sistema","Rins, ureteres, bexiga, uretra"],["uro_nefron","Néfron: glomérulo filtra, túbulos reabsorvem"],["uro_calculo","Cálculo renal"],["uro_hpb","Próstata normal × HPB"],["uro_incont","Continência × incontinência"]],
+ chave:["Cistite = sem febre · pielonefrite = febre + <mark>Giordano +</mark>","Bactéria sem sintoma não se trata (exceto gestante)","DRC = alteração ≥ 3 meses; causas: DM e HAS"],
+ d:[
+ {n:"Cistite", img:"uro_sistema", o:"ITU baixa, principal agente <mark>E. coli</mark>.", s:"Disúria, polaciúria, urgência, dor suprapúbica. Sem febre.", dx:"Clínico; EAS (nitrito +, leucocitúria). Urocultura se gestante, atípico ou recorrente.", tt:"<mark>Fosfomicina 3 g dose única</mark> ou nitrofurantoína 5 dias."},
+ {n:"Pielonefrite", img:"uro_nefron", o:"ITU alta (rim), pode evoluir para sepse.", s:"Febre, calafrio, dor lombar, <mark>Giordano +</mark>, náusea.", dx:"EAS + <mark>urocultura com antibiograma</mark>, hemograma, creatinina.", tt:"Estável: ciprofloxacino VO. Grave: ATB EV e internação; descalonar pela cultura."},
+ {n:"Litíase urinária", img:"uro_calculo", o:"Cristais por urina concentrada. Mais comum: oxalato de cálcio.", s:"Cólica renal súbita em flanco → virilha; paciente inquieto; hematúria.", dx:"TC sem contraste, USG.", tt:"<mark>AINE 1ª escolha</mark>, hidratação; litotripsia/ureteroscopia se não elimina.", al:"Cálculo obstruindo + infecção = emergência: duplo J ou nefrostomia."},
+ {n:"Lesão renal aguda", img:"uro_nefron", o:"Queda súbita e reversível. Pré-renal (pouco sangue), renal (dano), pós-renal (obstrução).", s:"↑ creatinina, ↓ diurese, edema, náusea, confusão.", dx:"Creatinina, débito urinário mL/kg/h, K, Na.", tt:"Tratar a causa: repor volume, tirar nefrotóxico, desobstruir."},
+ {n:"Doença renal crônica", img:"uro_sistema", o:"Alteração por <mark>≥ 3 meses</mark>, irreversível. Causas: diabetes e HAS.", s:"Silenciosa; depois fadiga, edema, prurido, anemia, uremia.", dx:"TFG (G1–G5) + albuminúria (A1–A3).", tt:"IECA/BRA, iSGLT2, controle de DM; diálise ou transplante.", al:"Hipercalemia e fístula: não aferir PA no braço da fístula."},
+ {n:"Incontinência urinária", img:"uro_incont", o:"Esforço (tosse, espirro) × urgência (bexiga hiperativa).", dx:"Diário miccional, EAS, resíduo pós-miccional.", tt:"Esforço: <mark>Kegel</mark>. Urgência: oxibutinina, mirabegrona."},
+ {n:"HPB", img:"uro_hpb", o:"Aumento benigno da próstata (não é câncer) que aperta a uretra.", s:"Jato fraco, hesitação, noctúria, gotejamento.", dx:"IPSS (0–7 leve, 8–19 moderado, 20–35 grave), toque retal, PSA.", tt:"Tansulosina (rápido) ± finasterida (reduz próstata); RTU se falha."}
+ ]},
+{id:"hemato", nome:"Hemato", titulo:"Doenças hematológicas",
+ lead:"Hemácias levam O₂, leucócitos defendem, plaquetas fazem o tampão. TAP monitora varfarina; TTPa monitora heparina.",
+ figs:[["he_hemato","Hematopoiese na medula"],["he_anemia","Sangue normal × anemia"],["he_falci","Hemácia em foice"],["he_cascata","Cascata de coagulação"],["he_virchow","Tríade de Virchow"],["he_tep","TVP que migra e vira TEP"]],
+ chave:["VCM ↓ = ferro · VCM ↑ = B12/folato","<mark>TAP → varfarina · TTPa → heparina</mark>","Virchow: estase + lesão endotelial + hipercoagulabilidade"],
+ d:[
+ {n:"Anemia ferropriva", img:"he_anemia", o:"Falta de ferro (perda de sangue, dieta, gestação).", s:"Fadiga, palidez, taquicardia, unhas frágeis, pica.", dx:"Hb ↓, <mark>VCM ↓, ferritina ↓</mark>, RDW ↑.", tt:"Ferro oral (EV se intolerância).", enf:"Avisar fezes escuras e constipação, reforçar adesão."},
+ {n:"Anemia megaloblástica", img:"he_anemia", o:"Falta de B12 (carne, leite, ovo; gastrite atrófica) ou folato.", dx:"VCM ↑ (macrocitose).", tt:"Repor B12/folato."},
+ {n:"Anemia hemolítica / falciforme", img:"he_falci", o:"Hemácia destruída cedo. Falciforme: HbS vira foice sem O₂ → vaso-oclusão.", s:"Dor, icterícia, anemia.", dx:"Reticulócitos ↑, BI ↑, LDH ↑, haptoglobina ↓."},
+ {n:"Hemofilia", img:"he_cascata", o:"Hereditária ligada ao X. <mark>A = fator VIII · B = fator IX</mark>.", s:"Hemartrose (joelho), hematomas profundos.", dx:"TTPa ↑, TAP e plaquetas normais.", tt:"Repor o fator."},
+ {n:"Von Willebrand", img:"he_cascata", o:"Distúrbio hemorrágico hereditário mais comum.", s:"Sangramento de mucosa: nariz, gengiva, menstruação."},
+ {n:"CIVD", img:"he_cascata", o:"Coagula demais → consome fatores → <mark>sangra e trombosa ao mesmo tempo</mark>. Causa: sepse, trauma, obstetrícia.", dx:"Plaquetas ↓, TAP/TTPa ↑, fibrinogênio ↓, D-dímero ↑."},
+ {n:"Trombocitopenia", img:"he_hemato", o:"Plaquetas baixas.", s:"<mark>Petéquias</mark>, equimose, sangramento de gengiva e nariz."},
+ {n:"TVP e TEP", img:"he_tep", o:"Trombo em veia profunda (MMII) que pode ir ao pulmão.", s:"TVP: <mark>edema unilateral</mark>, dor, calor. TEP: <mark>dispneia súbita</mark>, taquicardia, dor torácica.", dx:"D-dímero, USG com compressão; angio-TC no TEP.", tt:"Anticoagulação: heparina, enoxaparina, varfarina, DOAC.", enf:"Profilaxia: deambulação precoce, meias, compressão, enoxaparina.", al:"Antídoto: heparina → protamina · varfarina → vitamina K."}
+ ]},
+{id:"cardio", nome:"Cardio", titulo:"Sistema cardiovascular",
+ lead:"PA = débito cardíaco × resistência. DC = FC × volume sistólico. Nó sinoatrial é o marca-passo natural.",
+ figs:[["cv_coracao","Câmaras e valvas"],["cv_focos","Focos: aórtico 2º EIC D, pulmonar 2º EIC E, tricúspide, mitral 5º EIC E"],["cv_atero","Placa de aterosclerose"],["cv_iam","Oclusão coronariana → IAM"],["cv_ic","Coração sadio × insuficiência"],["cv_ecg","ECG: P, QRS, T"],["cv_fa","Ritmo normal × fibrilação atrial"],["cv_tampon","Tamponamento cardíaco"]],
+ chave:["HAS estágio 1 ≥ 140/90 · estágio 3 ≥ 180/110","Dor torácica: ECG em 10 min + troponina + <mark>MONABCH</mark>","FV/TV sem pulso → desfibrilar"],
+ d:[
+ {n:"Hipertensão arterial", img:"cv_focos", o:"PA elevada de forma sustentada; 'doença silenciosa'.", s:"Geralmente nenhum; se muito alta: cefaleia, tontura, epistaxe.", dx:"≥ 2 medidas em ≥ 2 consultas; MAPA, MRPA.", tt:"↓ sal, exercício, peso; hidroclorotiazida, enalapril, losartana, anlodipino, betabloqueador.", enf:"Aferir: repouso 5 min, bexiga vazia, sentado, pés no chão, braço na altura do coração, sem conversar.", al:"Lesa coração, cérebro, rins, retina e vasos."},
+ {n:"Aterosclerose", img:"cv_atero", o:"Placa de gordura inflamatória na íntima da artéria.", s:"Silenciosa até causar IAM, AVC ou claudicação.", dx:"LDL, HDL, triglicerídeos, glicemia.", tt:"Estilo de vida + <mark>estatina</mark> (± ezetimiba)."},
+ {n:"Angina", img:"cv_iam", o:"Estável: dor no esforço que melhora em repouso. Instável: dor em repouso (trombo parcial)."},
+ {n:"Infarto (IAM)", img:"cv_iam", o:"Placa rompe → trombo → oclusão → necrose. Com supra de ST = oclusão total.", s:"Aperto retroesternal que irradia para braço E, mandíbula; sudorese, náusea.", dx:"<mark>ECG em até 10 min</mark>, troponina.", tt:"Angioplastia ou fibrinólise + <mark>MONABCH</mark>: morfina, O₂ se hipoxemia, nitrato, AAS, betabloqueador, clopidogrel, heparina.", al:"Nitrato contraindicado com hipotensão ou sildenafila."},
+ {n:"Insuficiência cardíaca", img:"cv_ic", o:"Coração não bombeia o suficiente. FE ≤ 40% = reduzida.", s:"Dispneia, <mark>ortopneia</mark>, edema, estertores, turgência jugular, ganho de peso.", dx:"BNP, ecocardiograma.", tt:"4 pilares: ARNI/IECA + betabloqueador + espironolactona + iSGLT2; diurético.", enf:"Peso diário, restrição de sal, cabeceira elevada."},
+ {n:"Arritmias", img:"cv_fa", o:"FA (átrios tremem → trombo → AVC), flutter, TV, FV (parada).", dx:"ECG, Holter.", tt:"Cardioversão (com pulso, sincronizada), desfibrilação (FV/TV sem pulso), marca-passo, ablação.", al:"FA: anticoagular para prevenir AVC."},
+ {n:"Endocardite", img:"cv_coracao", o:"Infecção das valvas (estafilo, estrepto). Risco: prótese, droga EV.", s:"<mark>Febre + sopro novo</mark>, petéquias, êmbolos.", dx:"Hemoculturas + ecocardiograma.", tt:"ATB EV prolongado."},
+ {n:"Pericardite / tamponamento", img:"cv_tampon", o:"Inflamação do pericárdio; derrame pode comprimir o coração.", s:"Dor que <mark>melhora sentado inclinado para frente</mark>, atrito. Tamponamento: hipotensão, jugular ↑, bulhas abafadas.", tt:"Anti-inflamatório; pericardiocentese no tamponamento."}
+ ]},
+{id:"resp", nome:"Respiratório", titulo:"Sistema respiratório",
+ lead:"Alvéolo = unidade funcional (pneumócito II faz surfactante). Brônquio direito é mais vertical: corpo estranho vai para a direita. FR normal 12–20.",
+ figs:[["re_vias","Vias aéreas superiores e inferiores"],["re_alveolo","Troca gasosa no alvéolo"],["re_rx","Radiografia de tórax"],["re_pneumonia","Pneumonia"],["re_asma","Brônquio normal × asma"],["re_dpoc","DPOC: enfisema e bronquite"],["re_derrame","Derrame pleural"]],
+ chave:["Sibilo = asma/DPOC · crepitante = pneumonia/EAP · estridor = obstrução alta","<mark>Tosse ≥ 3 semanas</mark> = investigar TB","SRAG = síndrome gripal + SatO₂ &lt; 95% ou dispneia"],
+ d:[
+ {n:"Resfriado comum", img:"re_vias", o:"Viral autolimitado (rinovírus).", s:"Coriza, espirro, congestão, dor de garganta.", tt:"Sintomático, lavagem nasal, hidratação."},
+ {n:"Influenza", img:"re_vias", o:"Influenza A (H1N1, H3N2) e B.", s:"<mark>Início abrupto</mark>, febre alta, mialgia, cefaleia, prostração.", dx:"RT-PCR.", tt:"<mark>Oseltamivir até 48 h</mark> (depois também se grave/risco); vacina anual."},
+ {n:"Covid-19", img:"re_pneumonia", o:"SARS-CoV-2, aerossóis.", s:"Febre, tosse, perda de olfato/paladar; grave: SatO₂ &lt; 94%.", tt:"Leve: sintomático. Grave: O₂, corticoide, anticoagulação."},
+ {n:"VSR", img:"re_alveolo", o:"Bronquiolite no lactente, grave no idoso.", tt:"Suporte; vacina em idoso e gestante; nirsevimabe no bebê."},
+ {n:"Rinite alérgica", img:"re_vias", o:"Inflamação mediada por IgE (ácaro, poeira, pólen).", s:"<mark>Espirros em salva</mark>, prurido, coriza aquosa, mucosa pálida.", tt:"Controle ambiental, lavagem, corticoide nasal, anti-histamínico.", al:"Descongestionante no máx. 3–5 dias (rebote)."},
+ {n:"Sinusite", img:"re_vias", o:"Viral na maioria; bacteriana rara.", s:"Obstrução ou coriza + dor/pressão facial.", tt:"Lavagem, sintomáticos; bacteriana: amoxicilina."},
+ {n:"Pneumonia", img:"re_rx", o:"Infecção do alvéolo; principal <mark>S. pneumoniae</mark>. PAC, hospitalar (&gt; 48 h), PAV.", s:"Febre, tosse produtiva, dor pleurítica; <mark>crepitantes, macicez</mark>. Idoso: confusão sem febre.", dx:"<mark>RX de tórax</mark>.", tt:"Amoxicilina na PAC; grave: O₂, UTI; vacinas."},
+ {n:"Tuberculose", img:"re_rx", o:"M. tuberculosis, transmissão por aerossóis.", s:"<mark>Tosse ≥ 3 semanas</mark>, febre à tarde, sudorese noturna, emagrecimento.", dx:"<mark>TRM-TB</mark>, baciloscopia, cultura, RX.", tt:"<mark>RHZE 2 meses + RH 4 meses</mark> com tratamento observado.", enf:"Máscara N95 para o profissional, isolamento por aerossóis."},
+ {n:"Asma", img:"re_asma", o:"Inflamação crônica com broncoconstrição reversível.", s:"Sibilos, dispneia, tosse noturna, aperto no peito.", dx:"Espirometria.", tt:"Controle: corticoide inalatório ± formoterol. Alívio: salbutamol.", al:"'Tórax silencioso' na crise = gravíssimo."},
+ {n:"DPOC", img:"re_dpoc", o:"Bronquite crônica + enfisema, pouco reversível; causa: <mark>tabagismo</mark>.", s:"Tosse crônica, dispneia progressiva, tórax em barril.", dx:"Espirometria (padrão-ouro).", tt:"Parar de fumar, LABA + LAMA, vacinas, O₂ domiciliar.", al:"O₂ com cautela: alvo SatO₂ 88–92%."},
+ {n:"Derrame pleural", img:"re_derrame", o:"Líquido na pleura. Transudato (IC) × exsudato (pneumonia, TB, câncer).", s:"Dispneia; <mark>macicez, MV abolido, FTV ↓</mark>.", dx:"RX, USG, toracocentese.", tt:"Tratar a causa; drenagem torácica se empiema/hemotórax.", enf:"Frasco do dreno sempre abaixo do tórax."}
+ ]}
+];
+
+const QUIZ = [
+["neuro","Glasgow ≤ 8","Intubação"],["neuro","Déficit neurológico que some em &lt; 24 h","AIT"],["neuro","Exame antes do trombolítico","TC de crânio"],["neuro","Janela do trombolítico no AVE isquêmico","Até 4 h 30"],["neuro","Pior cefaleia da vida + rigidez de nuca","Aneurisma roto / hemorragia subaracnoide"],["neuro","Cabeceira no aneurisma","30°"],["neuro","3 condutas do TRM no pré-hospitalar","Colar cervical, bloco, prancha"],["neuro","Exame essencial na epilepsia","EEG"],["neuro","Após a crise convulsiva, posicionar em…","Decúbito lateral"],
+["endo","TSH ↑ + T4 ↓","Hipotireoidismo (Hashimoto)"],["endo","TSH ↓ + T3/T4 ↑","Hipertireoidismo (Graves)"],["endo","Remédio do hipotireoidismo","Levotiroxina"],["endo","3 Ps do diabetes","Poliúria, polidipsia, polifagia"],["endo","Glicemia de jejum diagnóstica","≥ 126 mg/dL"],["endo","HbA1c diagnóstica","≥ 6,5%"],["endo","Glicemia &lt; 70, paciente acordado","15 g de açúcar e checar em 15 min"],["endo","Local de insulina com absorção mais rápida","Abdome"],["endo","Hálito cetônico + Kussmaul no DM1","Cetoacidose"],
+["gastro","Pirose + regurgitação","DRGE → IBP 8 semanas"],["gastro","Vômito em borra de café","HDA → endoscopia"],["gastro","Fezes pretas e pegajosas","Melena (HDA)"],["gastro","Dor no quadrante inferior esquerdo + febre","Diverticulite → TC"],["gastro","Hipocôndrio direito + Murphy +","Colecistite → USG"],["gastro","Dor epigástrica em faixa + lipase 3×","Pancreatite"],["gastro","Inflamação transmural da boca ao ânus","Doença de Crohn"],["gastro","Ordem do exame do abdome","Inspeção, ausculta, percussão, palpação"],
+["uro","Disúria sem febre","Cistite → fosfomicina"],["uro","Febre + Giordano +","Pielonefrite"],["uro","Principal agente da ITU","E. coli"],["uro","Bactéria na urina sem sintoma","Não tratar (exceto gestante)"],["uro","Cólica em flanco, paciente inquieto","Cálculo renal → AINE"],["uro","Alteração renal ≥ 3 meses","Doença renal crônica"],["uro","Perde urina ao tossir","Incontinência de esforço → Kegel"],["uro","Jato fraco no idoso","HPB → tansulosina"],
+["hemato","VCM ↓ + ferritina ↓","Anemia ferropriva"],["hemato","VCM ↑","Falta de B12 ou folato"],["hemato","TAP monitora…","Varfarina"],["hemato","TTPa monitora…","Heparina"],["hemato","Hemartrose + TTPa ↑","Hemofilia"],["hemato","Hemofilia A falta o fator…","VIII"],["hemato","Sangra e trombosa + D-dímero ↑","CIVD"],["hemato","Tríade de Virchow","Estase + lesão endotelial + hipercoagulabilidade"],["hemato","Edema unilateral de panturrilha","TVP → USG com compressão"],["hemato","Antídoto da heparina","Protamina"],
+["cardio","PA 150/95","HAS estágio 1"],["cardio","Dor torácica: exame em 10 min","ECG"],["cardio","Principal marcador de lesão miocárdica","Troponina"],["cardio","MONABCH","Morfina, O₂, nitrato, AAS, betabloqueador, clopidogrel, heparina"],["cardio","Ortopneia + estertores + BNP ↑","Insuficiência cardíaca"],["cardio","Risco principal da FA","AVC"],["cardio","FV / TV sem pulso","Desfibrilação"],["cardio","Febre + sopro novo","Endocardite"],["cardio","Dor que melhora inclinado para frente","Pericardite"],["cardio","Foco mitral","5º EIC esquerdo, linha hemiclavicular"],
+["resp","Febre súbita + mialgia intensa","Influenza → oseltamivir em 48 h"],["resp","Síndrome gripal + SatO₂ &lt; 95%","SRAG"],["resp","Crepitantes + macicez","Pneumonia → RX"],["resp","Tosse ≥ 3 semanas + sudorese noturna","Tuberculose"],["resp","Esquema da TB","RHZE 2 meses + RH 4 meses"],["resp","Exame inicial da TB no Brasil","Teste rápido molecular (TRM-TB)"],["resp","Alívio da crise de asma","Salbutamol (SABA)"],["resp","Padrão-ouro na DPOC","Espirometria"],["resp","Macicez + MV abolido + FTV ↓","Derrame pleural"],["resp","Espirros em salva + prurido","Rinite alérgica"]
+];
+
+
+// [sistema, pergunta, [alternativas], índice certo, explicação, {índice errado: comentário}]
+const MCQ = [
+["neuro","Paciente abre os olhos à dor (2), fala palavras inapropriadas (3) e localiza a dor (5). Qual o Glasgow e a conduta?",["10, observar","8, considerar intubação","12, alta","6, não intubar"],1,"2 + 3 + 5 = 8. Glasgow ≤ 8 indica proteger a via aérea (intubação).",{0:"A soma foi feita errada: 2 + 3 + 5 dá 8, não 10.",2:"Soma errada e conduta perigosa: o total é 8, que é grave.",3:"A soma é 8, e ≤ 8 é justamente o ponto de intubar."}],
+["neuro","Antes de dar trombolítico a um paciente com suspeita de AVE, qual exame é obrigatório?",["Eletroencefalograma","Punção lombar","Tomografia de crânio","Ressonância de coluna"],2,"A TC de crânio exclui AVE hemorrágico. Trombolítico num sangramento seria desastroso.",{0:"EEG é o exame da epilepsia, não do AVE.",1:"Punção lombar não é o exame inicial e atrasa o tratamento.",3:"Ressonância de coluna é para trauma raquimedular."}],
+["neuro","Qual a janela de tempo ideal para o trombolítico no AVE isquêmico?",["Até 1 hora","Até 4 horas e 30 minutos","Até 24 horas","Até 72 horas"],1,"Alteplase ou tenecteplase até 4 h 30 do início dos sintomas. Até 24 h é a trombectomia mecânica em casos selecionados.",{0:"Quanto antes melhor, mas a janela vai até 4 h 30.",2:"24 h é o limite da trombectomia mecânica, não do trombolítico.",3:"72 h está muito fora de qualquer janela de reperfusão."}],
+["neuro","Durante uma crise convulsiva tônico-clônica, o que a enfermagem NÃO deve fazer?",["Proteger a cabeça","Cronometrar a crise","Colocar um objeto na boca do paciente","Afastar objetos perigosos"],2,"Nunca colocar nada na boca nem puxar a língua: risco de lesão e de aspiração. Depois da crise, decúbito lateral.",{0:"Proteger a cabeça é correto e deve ser feito.",1:"Cronometrar é correto: crise acima de 5 min é mal epiléptico.",3:"Afastar objetos é correto, evita traumas."}],
+["neuro","No aneurisma cerebral, qual a posição da cabeceira e por quê?",["0°, para aumentar o fluxo ao cérebro","30°, para favorecer a drenagem venosa cerebral","90°, para facilitar a respiração","Trendelenburg, para subir a PA"],1,"Cabeceira a 30° favorece a drenagem venosa e reduz a pressão intracraniana.",{0:"Deitar reto dificulta a drenagem venosa e aumenta a pressão intracraniana.",2:"90° não é a indicação; o recomendado nas aulas é 30°.",3:"Trendelenburg aumenta a pressão intracraniana, é contraindicado."}],
+["neuro","No atendimento pré-hospitalar do trauma raquimedular, a conduta correta é:",["Sentar o paciente para avaliar","Colar cervical, movimentação em bloco e prancha rígida","Retirar o capacete e virar de lado","Esperar ele tentar andar"],1,"Imobilizar a coluna evita agravar a lesão medular.",{0:"Sentar movimenta a coluna e pode piorar a lesão.",2:"Virar sem bloco e sem colar pode completar a lesão medular.",3:"Nunca estimular a movimentação antes de excluir a lesão."}],
+["endo","Exame com TSH alto e T4 baixo indica:",["Hipertireoidismo","Hipotireoidismo","Diabetes","Tireoide normal"],1,"No hipotireoidismo (Hashimoto) a tireoide produz pouco T4 e a hipófise sobe o TSH para compensar. Tratamento: levotiroxina.",{0:"No hipertireoidismo é o contrário: TSH baixo e T4 alto.",2:"TSH e T4 são hormônios da tireoide, não avaliam diabetes.",3:"TSH alto com T4 baixo é alterado."}],
+["endo","Qual é a principal causa de hipertireoidismo?",["Tireoidite de Hashimoto","Doença de Graves","Falta de iodo","Diabetes tipo 1"],1,"Graves é autoimune e estimula a tireoide a produzir hormônio em excesso.",{0:"Hashimoto é a principal causa de HIPOtireoidismo.",2:"Falta de iodo leva a hipotireoidismo e bócio.",3:"DM1 é autoimune do pâncreas, não da tireoide."}],
+["endo","Os '3 Ps' do diabetes são:",["Palidez, prurido, perda de peso","Poliúria, polidipsia, polifagia","Poliúria, palpitação, parestesia","Polaciúria, pirose, polifagia"],1,"Muita urina (a glicose puxa água), muita sede (para repor) e muita fome (a célula não usa a glicose).",{0:"Prurido e perda de peso aparecem, mas não são os 3 Ps.",2:"Palpitação e parestesia não fazem parte da tríade.",3:"Polaciúria é urinar pouco e muitas vezes (cistite); pirose é refluxo."}],
+["endo","Qual valor confirma diabetes pela glicemia de jejum?",["≥ 100 mg/dL","≥ 110 mg/dL","≥ 126 mg/dL","≥ 200 mg/dL"],2,"Jejum ≥ 126 mg/dL. De 100 a 125 é pré-diabetes (glicemia de jejum alterada).",{0:"100–125 é pré-diabetes, não diabetes.",1:"110 ainda está na faixa de pré-diabetes.",3:"200 é o corte da glicemia casual com sintomas e do TOTG de 2 h."}],
+["endo","Paciente diabético acordado, com glicemia capilar de 55 mg/dL. Conduta:",["Aplicar insulina regular","Oferecer 15 g de carboidrato rápido e medir de novo em 15 min","Deixar em jejum até o médico ver","Dar água gelada"],1,"Regra 15/15: 15 g de açúcar rápido (suco, água com açúcar, bala) e nova glicemia em 15 minutos.",{0:"Insulina baixa ainda mais a glicose: pode levar ao coma.",2:"Esperar em jejum piora a hipoglicemia.",3:"Água não contém glicose."}],
+["endo","Em qual local a insulina é absorvida mais rápido?",["Nádegas","Coxa","Braço","Abdome"],3,"Ordem de absorção: abdome > braço > coxa > nádegas. Sempre com rodízio de locais.",{0:"Nádegas é o local de absorção mais lenta.",1:"Coxa é mais lenta que abdome e braço.",2:"Braço é rápido, mas o abdome é ainda mais."}],
+["gastro","Na DRGE com pirose e regurgitação típicas, sem sinais de alarme, o tratamento inicial é:",["Cirurgia antirrefluxo","IBP (omeprazol) 1×/dia por 8 semanas","Antibiótico por 14 dias","Colonoscopia"],1,"Teste terapêutico com IBP antes da refeição por 8 semanas, mais medidas como elevar a cabeceira e não comer antes de deitar.",{0:"Cirurgia é só para casos selecionados.",2:"Antibiótico entra na gastrite por H. pylori, não no refluxo.",3:"Colonoscopia avalia o intestino grosso, não o esôfago."}],
+["gastro","Vômito com aspecto de 'borra de café' sugere:",["Hemorragia digestiva alta","Hemorragia digestiva baixa","Hemorroida","Diverticulite"],0,"É sangue que ficou em contato com o ácido do estômago: sangramento alto (esôfago, estômago, duodeno). Exame: endoscopia.",{1:"Hemorragia baixa aparece como sangue vivo pelo reto (hematoquezia).",2:"Hemorroida sangra vermelho vivo ao evacuar, não no vômito.",3:"Diverticulite dá dor no quadrante inferior esquerdo e febre."}],
+["gastro","Dor no quadrante inferior esquerdo, febre e alteração do hábito intestinal. Qual exame NÃO fazer na fase aguda?",["Tomografia","Hemograma","Colonoscopia","PCR"],2,"Na diverticulite aguda a colonoscopia tem risco de perfuração. O exame de escolha é a TC.",{0:"A TC é justamente o exame de escolha.",1:"Hemograma pode e deve ser feito (leucocitose).",3:"PCR é um exame de sangue seguro."}],
+["gastro","Dor em hipocôndrio direito após comida gordurosa, com sinal de Murphy positivo. Qual o primeiro exame?",["Endoscopia","Ultrassonografia abdominal","Colonoscopia","Raio-X de tórax"],1,"Suspeita de colecistite/colelitíase: a USG é o exame inicial de escolha.",{0:"Endoscopia olha esôfago e estômago, não a vesícula.",2:"Colonoscopia avalia o cólon.",3:"Raio-X de tórax não mostra a vesícula."}],
+["gastro","Quais as duas principais causas de pancreatite?",["H. pylori e AINEs","Cálculo biliar e álcool","Tabagismo e estresse","Vírus e fungos"],1,"O cálculo migra e obstrui a saída do pâncreas; o álcool agride o pâncreas diretamente.",{0:"H. pylori e AINEs são causas de gastrite e úlcera.",2:"Tabagismo piora a doença de Crohn; estresse não é causa principal.",3:"Infecções são causas raras."}],
+["gastro","Qual a ordem correta do exame físico do abdome?",["Inspeção, palpação, percussão, ausculta","Inspeção, ausculta, percussão, palpação","Palpação, inspeção, ausculta, percussão","Ausculta, inspeção, palpação, percussão"],1,"No abdome a ausculta vem antes da percussão e da palpação, para não alterar os ruídos hidroaéreos.",{0:"Essa é a ordem dos outros sistemas. No abdome, palpar antes altera os ruídos.",2:"Sempre se começa pela inspeção.",3:"Sempre se começa pela inspeção."}],
+["uro","Mulher com disúria, polaciúria e urgência, sem febre e sem dor lombar. Hipótese e tratamento:",["Pielonefrite, internar","Cistite, fosfomicina 3 g dose única","Cálculo renal, AINE","Bacteriúria assintomática, não tratar"],1,"Quadro típico de cistite (ITU baixa). Fosfomicina dose única é uma das primeiras escolhas.",{0:"Pielonefrite tem febre e dor lombar com Giordano positivo.",2:"Cálculo dá cólica intensa em flanco.",3:"Ela tem sintomas, então não é bacteriúria assintomática."}],
+["uro","Febre, calafrios, dor lombar e sinal de Giordano positivo indicam:",["Cistite","Pielonefrite","Incontinência urinária","HPB"],1,"Pielonefrite é ITU alta (rim), com sinais sistêmicos. Precisa de urocultura com antibiograma.",{0:"Cistite não tem febre nem dor lombar.",2:"Incontinência é perda de urina, não infecção.",3:"HPB dá jato fraco e noctúria, sem febre."}],
+["uro","Exame de urina com bactérias, mas paciente sem nenhum sintoma e não gestante. Conduta:",["Antibiótico por 7 dias","Não tratar de rotina","Internar","Sondagem vesical"],1,"Bacteriúria assintomática não é ITU. Só se trata em gestante e antes de procedimento urológico.",{0:"Tratar sem necessidade aumenta a resistência bacteriana.",2:"Não há indicação de internação.",3:"Sonda aumenta o risco de infecção e não trata nada."}],
+["uro","Qual a definição de doença renal crônica?",["Alteração renal por mais de 1 semana","Alteração renal por pelo menos 3 meses","Qualquer creatinina alta","Só quem faz hemodiálise"],1,"DRC = alteração de estrutura ou função por ≥ 3 meses. Principais causas: diabetes e hipertensão.",{0:"Alteração súbita, de horas a dias, é lesão renal AGUDA.",2:"Uma creatinina alta isolada pode ser lesão aguda.",3:"Diálise é só a fase avançada (G5)."}],
+["uro","Na cólica renal por cálculo, o analgésico de primeira escolha é:",["AINE (diclofenaco, cetorolaco)","Morfina sempre","Omeprazol","Nenhum, só hidratar"],0,"AINEs são primeira escolha se não houver contraindicação; opioide se não bastar.",{1:"Opioide fica para quando o AINE não resolve ou é contraindicado.",2:"Omeprazol protege o estômago, não trata dor.",3:"A dor é intensa e precisa ser tratada."}],
+["hemato","Hemograma com hemoglobina baixa, VCM baixo e ferritina baixa sugere:",["Anemia megaloblástica","Anemia ferropriva","Anemia hemolítica","Hemofilia"],1,"Falta de ferro gera hemácias pequenas (microcitose) e estoque de ferro (ferritina) baixo.",{0:"Na megaloblástica o VCM é ALTO (falta de B12/folato).",2:"Na hemolítica sobem reticulócitos, bilirrubina indireta e LDH.",3:"Hemofilia é problema de coagulação, não de hemoglobina."}],
+["hemato","O exame TAP (INR) é usado para monitorar qual medicamento?",["Heparina","Varfarina","Insulina","AAS"],1,"TAP avalia a via extrínseca e monitora a varfarina. O TTPa monitora a heparina.",{0:"Heparina é monitorada pelo TTPa (KPTT).",2:"Insulina é monitorada pela glicemia.",3:"AAS não é monitorado por TAP."}],
+["hemato","Hemofilia A é a deficiência de qual fator?",["Fator VII","Fator VIII","Fator IX","Fator X"],1,"Hemofilia A = fator VIII. Hemofilia B = fator IX. Ligada ao X, mais em homens.",{0:"Fator VII é da via extrínseca, não é hemofilia.",2:"Fator IX é a hemofilia B.",3:"Fator X é da via comum."}],
+["hemato","Quais são os três elementos da tríade de Virchow?",["Febre, dor e edema","Estase, lesão endotelial e hipercoagulabilidade","Anemia, plaquetopenia e leucopenia","Hipotensão, taquicardia e dispneia"],1,"São os três fatores que favorecem a trombose venosa (TVP).",{0:"São sinais inflamatórios, não a tríade.",2:"Isso é pancitopenia.",3:"São sinais de choque ou TEP, não a tríade."}],
+["hemato","Qual o antídoto da heparina?",["Vitamina K","Protamina","Naloxona","Flumazenil"],1,"Protamina neutraliza a heparina. Vitamina K reverte a varfarina.",{0:"Vitamina K é o antídoto da varfarina.",2:"Naloxona reverte opioides.",3:"Flumazenil reverte benzodiazepínicos."}],
+["cardio","Pressão arterial de 150/95 mmHg em adulto é classificada como:",["Normal","Pré-hipertensão","Hipertensão estágio 1","Hipertensão estágio 3"],2,"Estágio 1 = PAS 140–159 e/ou PAD 90–99.",{0:"Normal é abaixo de 120/80.",1:"Pré-hipertensão vai até 139/89.",3:"Estágio 3 é ≥ 180/110."}],
+["cardio","Paciente com dor torácica em aperto irradiando para o braço esquerdo chega ao PS. Primeiro exame, em até 10 minutos:",["Ecocardiograma","Eletrocardiograma de 12 derivações","Raio-X de tórax","Teste ergométrico"],1,"O ECG identifica supra de ST, que exige reperfusão imediata. Junto, dosar troponina.",{0:"Eco é útil, mas não é o exame dos primeiros 10 minutos.",2:"Raio-X não diagnostica infarto.",3:"Teste de esforço é contraindicado em suspeita de infarto agudo."}],
+["cardio","No mnemônico MONABCH do infarto, a letra A significa:",["Amiodarona","AAS","Atropina","Adrenalina"],1,"AAS é antiagregante plaquetário. MONABCH: Morfina, O₂, Nitrato, AAS, Betabloqueador, Clopidogrel, Heparina.",{0:"Amiodarona é antiarrítmico, não entra no MONABCH.",2:"Atropina é para bradicardia.",3:"Adrenalina é da parada cardíaca."}],
+["cardio","Fibrilação ventricular em parada cardíaca é tratada com:",["Cardioversão sincronizada","Desfibrilação","Marca-passo","Nitrato"],1,"FV e TV sem pulso são ritmos chocáveis: desfibrilação (choque não sincronizado).",{0:"Cardioversão sincronizada é para arritmia com pulso.",2:"Marca-passo trata bradiarritmias.",3:"Nitrato é para dor isquêmica."}],
+["cardio","Dor torácica que piora deitado e melhora ao sentar inclinado para frente sugere:",["Infarto","Pericardite","Pneumonia","Refluxo"],1,"É a dor típica da pericardite, muitas vezes com atrito pericárdico.",{0:"A dor do infarto não muda com a posição.",2:"Pneumonia dá febre, tosse e dor pleurítica.",3:"Refluxo dá queimação e piora deitado, mas não melhora inclinando."}],
+["cardio","Ortopneia, estertores, edema de membros e BNP elevado sugerem:",["Asma","Insuficiência cardíaca","Hipotireoidismo","Anemia"],1,"São sinais de congestão da insuficiência cardíaca. O BNP sobe quando o coração está sobrecarregado.",{0:"Asma dá sibilos, não BNP alto nem edema.",2:"Hipotireoidismo dá edema facial, mas não ortopneia com BNP alto.",3:"Anemia dá cansaço e palidez, sem estertores."}],
+["resp","Febre alta de início súbito, mialgia intensa e prostração. Qual antiviral e em quanto tempo?",["Aciclovir em 7 dias","Oseltamivir, idealmente em até 48 h","Amoxicilina em 24 h","Nenhum, só vacina"],1,"Quadro de influenza. Oseltamivir de preferência em até 48 h, mas também depois em grupos de risco ou casos graves.",{0:"Aciclovir é para herpes.",2:"Amoxicilina é antibiótico e não age em vírus.",3:"A vacina previne; quem já está doente pode precisar de oseltamivir."}],
+["resp","Qual o principal agente da pneumonia adquirida na comunidade?",["Streptococcus pneumoniae","Pseudomonas aeruginosa","Mycobacterium tuberculosis","E. coli"],0,"O pneumococo é o principal agente da PAC. Pseudomonas pesa mais nas pneumonias hospitalares.",{1:"Pseudomonas é típica da pneumonia hospitalar e da associada à ventilação.",2:"Esse é o agente da tuberculose.",3:"E. coli é o principal agente da infecção urinária."}],
+["resp","Tosse há 4 semanas, febre à tarde, sudorese noturna e perda de peso. Qual o exame inicial recomendado no Brasil?",["Espirometria","Teste rápido molecular para TB (TRM-TB)","Prova de função tireoidiana","Endoscopia"],1,"Suspeita de tuberculose. O TRM-TB detecta o bacilo e a resistência à rifampicina.",{0:"Espirometria é para asma e DPOC.",2:"Não tem relação com o quadro.",3:"Endoscopia avalia o estômago."}],
+["resp","O esquema básico da tuberculose é:",["RHZE por 6 meses","RHZE 2 meses + RH 4 meses","Amoxicilina por 14 dias","RH por 2 meses"],1,"Fase intensiva de 2 meses com 4 drogas e manutenção de 4 meses com rifampicina e isoniazida. Total: 6 meses.",{0:"Só os 2 primeiros meses são com as 4 drogas.",2:"Amoxicilina não trata tuberculose.",3:"RH é a fase de manutenção, de 4 meses, e vem depois."}],
+["resp","Na crise de asma, qual é o medicamento de alívio rápido?",["Budesonida inalatória","Salbutamol (SABA)","Amoxicilina","Loratadina"],1,"Salbutamol é broncodilatador de ação curta. O corticoide inalatório é para controle a longo prazo.",{0:"Corticoide inalatório controla a inflamação, mas não é o alívio imediato.",2:"Asma não é infecção bacteriana.",3:"Loratadina é para rinite alérgica."}],
+["resp","Macicez à percussão, murmúrio vesicular abolido e frêmito tóraco-vocal diminuído indicam:",["Pneumotórax","Derrame pleural","Asma","Pneumonia"],1,"O líquido na pleura abafa o som e impede a transmissão da voz.",{0:"No pneumotórax a percussão é HIPERsonora (ar).",2:"Asma dá sibilos, com percussão normal.",3:"Pneumonia tem macicez, mas o frêmito fica AUMENTADO e há crepitantes."}],
+["resp","Paciente com DPOC precisa de oxigênio. Qual a meta de saturação?",["100%","98 a 100%","88 a 92%","Abaixo de 85%"],2,"Na DPOC retentora de CO₂, O₂ demais pode deprimir a respiração. Meta de 88–92%.",{0:"Buscar 100% na DPOC pode causar retenção de CO₂.",1:"Meta alta demais para o paciente com DPOC.",3:"Abaixo de 85% é hipoxemia grave."}]
+];
+
+const COR = {neuro:"var(--neuro)",endo:"var(--endo)",gastro:"var(--gastro)",uro:"var(--uro)",hemato:"var(--hemato)",cardio:"var(--cardio)",resp:"var(--resp)",treino:"var(--ink)",quest:"var(--ink)"};
+const NOMES = {neuro:"Neurológico",endo:"Endócrino",gastro:"Gastrointestinal",uro:"Urinário",hemato:"Hematológico",cardio:"Cardiovascular",resp:"Respiratório"};
+const $ = id => document.getElementById(id);
+const strip = h => h.replace(/<[^>]+>/g,"").replace(/&lt;/g,"<").replace(/&gt;/g,">");
+let atual = "neuro";
+try{ const a = localStorage.getItem("aba2"); if(a && (COR[a])) atual = a; }catch(e){}
+
+function setSys(id, scroll){
+  atual = id; try{localStorage.setItem("aba2", id)}catch(e){}
+  document.documentElement.style.setProperty("--sys", COR[id]);
+  document.querySelectorAll(".organ").forEach(o => o.classList.toggle("on", o.dataset.s === id));
+  renderNav(); render();
+  if(scroll) $("view").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
+}
+function renderNav(){
+  const items = [...SYS.map(s => [s.id, NOMES[s.id], s.d.length]), ["quest","Questionário", MCQ.length], ["treino","Treino", QUIZ.length]];
+  $("legend").innerHTML = items.map(([id,n,c]) => `<li><button class="${id==='treino'||id==='quest'?'treino':''}" style="--c:${COR[id]}" data-go="${id}" aria-pressed="${id===atual}"><span class="dot"></span>${n}<small>${c} ${id==='treino'?'cartões':id==='quest'?'questões':'doenças'}</small></button></li>`).join("");
+  $("bar").innerHTML = items.map(([id,n]) => `<button role="tab" style="--c:${COR[id]}" data-go="${id}" aria-selected="${id===atual}"><span class="dot"></span>${id==='treino'?'Treino':id==='quest'?'Questionário':n}</button>`).join("");
+}
+function doenca(d, i){
+  const rows = [["O que é",d.o],["Sinais",d.s],["Diagnóstico",d.dx],["Tratamento",d.tt],["Enfermagem",d.enf]].filter(r => r[1]);
+  return `<details class="dz" id="dz-${i}"><summary><span class="nm">${d.n}</span><span class="gist">${strip(d.o)}</span><span class="pm" aria-hidden="true"></span></summary>
+    <div class="inner"><button class="pic" data-img="${I(d.img)}" data-cap="${d.n}" aria-label="Ampliar imagem de ${d.n}"><img src="${I(d.img)}" alt="" loading="lazy"></button>
+    <dl>${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}${d.al ? `<div class="warn"><b>Atenção.</b> ${d.al}</div>` : ""}</dl></div></details>`;
+}
+function render(){
+  if(atual === "treino") return renderQuiz();
+  if(atual === "quest") return renderMCQ();
+  const s = SYS.find(x => x.id === atual);
+  $("view").innerHTML = `
+    <header class="syshead"><h2>${s.titulo}</h2><p>${s.lead}</p></header>
+    <aside class="note"><h3>Cai na prova</h3><ul>${s.chave.map(c => `<li>${c}</li>`).join("")}</ul></aside>
+    <div class="plates">${s.figs.map(f => `<button class="plate" data-img="${I(f[0])}" data-cap="${f[1]}"><img src="${I(f[0])}" alt="" loading="lazy"><span>${f[1]}</span></button>`).join("")}</div>
+    <div class="list-head"><h3>${s.d.length} doenças</h3><button class="link" id="all">Abrir todas</button></div>
+    <div>${s.d.map(doenca).join("")}</div>`;
+  $("all").onclick = () => { const ds = [...document.querySelectorAll(".dz")]; const abrir = ds.some(d => !d.open); ds.forEach(d => d.open = abrir); $("all").textContent = abrir ? "Fechar todas" : "Abrir todas"; };
+}
+
+/* busca global */
+const INDEX = SYS.flatMap(s => s.d.map((d,i) => ({s:s.id, i, n:d.n, t:strip([d.n,d.o,d.s,d.dx,d.tt,d.enf,d.al].filter(Boolean).join(" ")).toLowerCase()})));
+$("q").addEventListener("input", () => {
+  const q = $("q").value.toLowerCase().trim(); const r = $("res");
+  if(!q){ r.hidden = true; return; }
+  const hits = INDEX.filter(x => x.t.includes(q)).slice(0,12);
+  r.innerHTML = hits.length ? hits.map(h => `<li><button data-s="${h.s}" data-i="${h.i}" style="--c:${COR[h.s]}"><span class="dot"></span>${h.n}<small>${NOMES[h.s]}</small></button></li>`).join("") : `<li class="none">Nenhuma doença com "${$("q").value}". Tente um sinal (ex.: febre) ou um remédio.</li>`;
+  r.hidden = false;
+});
+$("res").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  $("res").hidden = true; $("q").value = "";
+  setSys(b.dataset.s, false);
+  const d = $("dz-" + b.dataset.i); d.open = true; d.scrollIntoView({block:"center"}); d.querySelector("summary").focus();
+});
+document.addEventListener("click", e => { if(!e.target.closest(".search")) $("res").hidden = true; });
+
+/* treino */
+let fila = [], pos = 0, ok = 0, vistos = 0, virado = false, filtro = new Set(SYS.map(s => s.id));
+const embaralhar = () => { fila = QUIZ.filter(q => filtro.has(q[0])).sort(() => Math.random() - .5); pos = 0; ok = 0; vistos = 0; virado = false; };
+function renderQuiz(){
+  if(!fila.length) embaralhar();
+  const q = fila[pos], c = COR[q[0]];
+  $("view").innerHTML = `
+    <header class="syshead" style="--sys:var(--ink)"><h2>Treino</h2><p>Leia a pista e pense na resposta. Toque no cartão para virar e diga se acertou.</p></header>
+    <div class="quiz">
+      <div class="picks">${SYS.map(s => `<label style="--c:${COR[s.id]}"><input type="checkbox" value="${s.id}" ${filtro.has(s.id)?"checked":""}>${s.nome}</label>`).join("")}</div>
+      <div class="flip ${virado?'on':''}" id="flip" tabindex="0" role="button" aria-label="Virar cartão" style="--c:${c}">
+        <div class="card3d">
+          <div class="face"><span class="who">${NOMES[q[0]]}</span><div class="big">${q[1]}</div><span class="hint">Toque para ver a resposta</span></div>
+          <div class="face back"><span class="who">Resposta</span><div class="big">${q[2]}</div><span class="hint">${q[1]}</span></div>
+        </div>
+      </div>
+      <div class="qbar">${virado ? `<button class="btn yes" id="sim">Acertei</button><button class="btn no" id="nao">Errei</button>` : `<button class="btn" id="ver">Ver resposta</button>`}<button class="link" id="rei">Embaralhar de novo</button></div>
+      <div class="progress"><i style="width:${(pos/fila.length*100).toFixed(1)}%"></i></div>
+      <div class="score">Cartão ${pos+1} de ${fila.length}, ${ok} acertos em ${vistos}</div>
+    </div>`;
+  const virar = () => { virado = !virado; $("flip").classList.toggle("on", virado); setTimeout(renderQuiz, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 480); };
+  $("flip").onclick = virar; $("flip").onkeydown = e => { if(e.key===" "||e.key==="Enter"){ e.preventDefault(); virar(); } };
+  const prox = acertou => { vistos++; if(acertou) ok++; pos = (pos + 1) % fila.length; virado = false; renderQuiz(); };
+  if(virado){ $("sim").onclick = () => prox(true); $("nao").onclick = () => prox(false); } else $("ver").onclick = virar;
+  $("rei").onclick = () => { embaralhar(); renderQuiz(); };
+  document.querySelectorAll(".picks input").forEach(i => i.onchange = () => { i.checked ? filtro.add(i.value) : filtro.delete(i.value); if(!filtro.size){ filtro.add(i.value); i.checked = true; } embaralhar(); renderQuiz(); });
+}
+
+/* questionário de múltipla escolha */
+const L = ["A","B","C","D"];
+let mq = null;
+function novoMCQ(n){
+  const qs = MCQ.map(q => ({sys:q[0], p:q[1], ops:q[2].map((t,i) => ({t, ok:i===q[3], c:q[5][i]})), ex:q[4]}))
+    .sort(() => Math.random() - .5).slice(0, n);
+  qs.forEach(q => q.ops.sort(() => Math.random() - .5));
+  mq = {qs, i:0, esc:null, erros:[], acertos:0, n:qs.length};
+}
+function renderMCQ(){
+  const v = $("view");
+  if(!mq) return v.innerHTML = `<header class="syshead" style="--sys:var(--ink)"><h2>Questionário</h2><p>Perguntas de múltipla escolha sobre os 7 sistemas. Depois de cada resposta aparece se está certa e, se errar, o que estava errado.</p></header>
+    <div class="mstart"><p>Quantas questões?</p><div class="qbar"><button class="btn yes" data-n="10">10 questões</button><button class="btn" data-n="20">20 questões</button><button class="btn" data-n="${MCQ.length}">Todas (${MCQ.length})</button></div></div>`,
+    v.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { novoMCQ(+b.dataset.n); renderMCQ(); });
+  if(mq.i >= mq.n) return fimMCQ();
+  const q = mq.qs[mq.i], c = COR[q.sys], resp = mq.esc !== null;
+  const esc = resp ? q.ops[mq.esc] : null, certa = q.ops.find(o => o.ok);
+  v.innerHTML = `<header class="syshead" style="--sys:var(--ink)"><h2>Questionário</h2><p>Questão ${mq.i+1} de ${mq.n}, ${mq.acertos} ${mq.acertos===1?'acerto':'acertos'} até agora.</p></header>
+   <div class="mcq" style="--c:${c}">
+    <div class="progress"><i style="width:${(mq.i/mq.n*100).toFixed(1)}%"></i></div>
+    <p class="who">${NOMES[q.sys]}</p>
+    <h3 class="mq">${q.p}</h3>
+    <ol class="opts">${q.ops.map((o,i) => {
+      const cls = !resp ? "" : o.ok ? "right" : i===mq.esc ? "wrong" : "dim";
+      return `<li><button class="opt ${cls}" data-i="${i}" ${resp?"disabled":""}><span class="let">${L[i]}</span><span>${o.t}</span>${resp&&o.ok?'<span class="mk">✓</span>':resp&&i===mq.esc?'<span class="mk">✗</span>':''}</button></li>`;}).join("")}</ol>
+    ${resp ? (esc.ok
+      ? `<div class="fb ok"><b>Certo!</b> ${q.ex}</div>`
+      : `<div class="fb bad"><b>Errado.</b> Você marcou "${esc.t}": ${esc.c}<br><br><b>A certa é ${L[q.ops.indexOf(certa)]}) ${certa.t}.</b> ${q.ex}</div>`) : ""}
+    <div class="qbar">${resp ? `<button class="btn yes" id="prox">${mq.i+1===mq.n?"Ver resultado":"Próxima questão"}</button>` : ""}<button class="link" id="sair">Recomeçar</button></div>
+   </div>`;
+  v.querySelectorAll(".opt:not([disabled])").forEach(b => b.onclick = () => {
+    mq.esc = +b.dataset.i; const o = q.ops[mq.esc];
+    if(o.ok) mq.acertos++; else mq.erros.push({q, o, certa});
+    renderMCQ(); $("fbanchor")?.focus();
+  });
+  if(resp) $("prox").onclick = () => { mq.i++; mq.esc = null; renderMCQ(); $("view").scrollIntoView({block:"start"}); };
+  $("sair").onclick = () => { mq = null; renderMCQ(); };
+}
+function fimMCQ(){
+  const pct = Math.round(mq.acertos / mq.n * 100);
+  const msg = pct >= 90 ? "Excelente, pronta para a prova." : pct >= 70 ? "Muito bom. Revise só os erros abaixo." : pct >= 50 ? "No caminho. Vale reler os sistemas em que errou." : "Vale revisar o conteúdo e tentar de novo.";
+  $("view").innerHTML = `<header class="syshead" style="--sys:var(--ink)"><h2>Resultado</h2><p>${msg}</p></header>
+   <div class="mcq"><div class="result"><span class="big">${mq.acertos}<small> de ${mq.n}</small></span><span class="pct">${pct}% de acerto</span></div>
+   ${mq.erros.length ? `<h3 class="mq">Revise o que errou</h3>${mq.erros.map(e => `<div class="rev" style="--c:${COR[e.q.sys]}"><p class="who">${NOMES[e.q.sys]}</p><p><b>${e.q.p}</b></p><p class="bad-t">Você marcou: ${e.o.t}. ${e.o.c}</p><p class="ok-t">Certa: ${e.certa.t}. ${e.q.ex}</p></div>`).join("")}` : `<p>Nenhum erro. Parabéns!</p>`}
+   <div class="qbar"><button class="btn yes" id="denovo">Fazer outro questionário</button></div></div>`;
+  $("denovo").onclick = () => { mq = null; renderMCQ(); };
+}
+
+/* navegação e imagens */
+document.addEventListener("click", e => {
+  const go = e.target.closest("[data-go]"); if(go){ setSys(go.dataset.go, go.closest(".legend")); return; }
+  const pic = e.target.closest("[data-img]"); if(pic){ $("lbimg").src = pic.dataset.img; $("lbcap").textContent = pic.dataset.cap; $("lb").hidden = false; }
+});
+$("lb").onclick = () => $("lb").hidden = true;
+document.addEventListener("keydown", e => { if(e.key === "Escape"){ $("lb").hidden = true; $("res").hidden = true; } });
+document.querySelectorAll(".organ").forEach(o => {
+  const show = () => { $("tip").textContent = NOMES[o.dataset.s]; $("tip").style.setProperty("--c", COR[o.dataset.s]); };
+  o.style.setProperty("--c", COR[o.dataset.s]);
+  o.addEventListener("mouseenter", show); o.addEventListener("focus", show);
+  o.addEventListener("mouseleave", () => { $("tip").textContent = "Toque num órgão"; $("tip").style.removeProperty("--c"); });
+  o.addEventListener("click", () => setSys(o.dataset.s, true));
+  o.addEventListener("keydown", e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setSys(o.dataset.s, true); } });
+});
+setSys(atual, false);
+</script>
+
+</body>
+</html>
